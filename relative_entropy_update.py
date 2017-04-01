@@ -14,9 +14,6 @@ class RelativeEntropyUpdate:
     def LoadPotential(self, pot, params_val):
         self.pot = pot
         self.params_val = params_val
-        #error check
-        if len(self.params_val) != self.pot.num_params:
-            raise AttributeError('Mismatch between number of expected and recieved potential parameters')
         return None
     
     #yields the the derivative functions in r-space for any potential
@@ -25,11 +22,10 @@ class RelativeEntropyUpdate:
         dur = []
         params_val = deepcopy(self.params_val)
         del params_val[param_name]
-        for r in self.r:
-            ur_ = lambda x: self.pot.Potential(r, dict(params_val.items() + [(param_name, x)]))
-            dur_ = nd.Derivative(ur_)
-            dur.append(dur_(x_cur))
-        return array(dur)
+        
+        ur = lambda x: self.pot.Potential(self.r, dict(params_val.items() + [(param_name, x)]))
+        dur = nd.Derivative(ur)
+        return dur(x_cur)
     
     #read in tabulated data
     def GetRadialDistData(self, filename):
@@ -64,8 +60,13 @@ class RelativeEntropyUpdate:
     def CalcUpdate(self, learning_rate=0.01, dim=3):
         params_val_new = deepcopy(self.params_val)
         for param_name in self.pot.params_state:
-            if self.pot.params_state[param_name]:
+            if self.pot.params_state[param_name]['opt']:
                 dur = self.GetDerivative(param_name)
                 update_integral = integrate.trapz(((self.r**(dim - 1))*(self.gr - self.gr_tgt)*dur), x=self.r)
                 params_val_new[param_name] = params_val_new[param_name] + learning_rate*update_integral
+                #check to make sure no constraint is violated
+                if 'min' in self.pot.params_state[param_name]:
+                    params_val_new[param_name] = max(params_val_new[param_name], self.pot.params_state[param_name]['min'])
+                if 'max' in self.pot.params_state[param_name]:
+                    params_val_new[param_name] = min(params_val_new[param_name], self.pot.params_state[param_name]['max'])
         return params_val_new
