@@ -69,4 +69,24 @@ class RelativeEntropyUpdate:
                     params_val_new[param_name] = max(params_val_new[param_name], self.pot.params_state[param_name]['min'])
                 if 'max' in self.pot.params_state[param_name]:
                     params_val_new[param_name] = min(params_val_new[param_name], self.pot.params_state[param_name]['max'])
-        return params_val_new
+        conv_score = {'gradient': 0.0, 'rdf_diff': 0.0}
+        for param_name in params_val_new:
+            conv_score['gradient'] = conv_score['gradient'] + ((params_val_new[param_name] - self.params_val[param_name])/learning_rate)**2
+        conv_score['gradient'] = conv_score['gradient']**(1.0/2.0)
+        conv_score['rdf_diff'] = integrate.trapz(((self.r**(dim - 1))*(self.gr - self.gr_tgt)**2), x=self.r)
+        return (params_val_new, conv_score)
+    
+    #calculate update
+    #def CalcUpdate(self, learning_rate=0.01, dim=3, conv_crit='gradient'):
+    #    params_val_new = deepcopy(self.params_val)
+    #    for param_name in self.pot.params_state:
+    #        if self.pot.params_state[param_name]['opt']:
+    #            dur = self.GetDerivative(param_name)
+    #            update_integral = integrate.trapz(((self.r**(dim - 1))*(self.gr - self.gr_tgt)*dur), x=self.r)
+    #            params_val_new[param_name] = params_val_new[param_name] + learning_rate*update_integral
+    #            #check to make sure no constraint is violated
+    #            if 'min' in self.pot.params_state[param_name]:
+    #                params_val_new[param_name] = max(params_val_new[param_name], self.pot.params_state[param_name]['min'])
+    #            if 'max' in self.pot.params_state[param_name]:
+    #                params_val_new[param_name] = min(params_val_new[param_name], self.pot.params_state[param_name]['max'])
+    #    return params_val_new
