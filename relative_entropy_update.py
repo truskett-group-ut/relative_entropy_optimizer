@@ -56,7 +56,7 @@ class RelativeEntropyUpdate:
         self.gr_tgt = akima.__call__(self.r, nu=0, extrapolate=None)        
         return None
     
-    #calculate update
+    #calculate update; wp:If args not provided it uses default vals
     def CalcUpdate(self, learning_rate=0.01, dim=3):
         params_val_new = deepcopy(self.params_val)
         for param_name in self.pot.params_state:
