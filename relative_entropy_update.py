@@ -74,9 +74,7 @@ class RelativeEntropyUpdate:
         self.rho = self.GetDensity(filename_current)
         self.rho_tgt = self.GetDensity(filename_target)
         #issue a warning in case the rho values are not being read in properly
-        if self.rho == 1 or self.rho_tgt == 1:
-            raise Exception('One or more densities are not getting read in or set properly!')
-        elif self.rho < 0.0 or self.rho_tgt < 0.0:
+        if self.rho < 0.0 or self.rho_tgt < 0.0:
             raise Exception('One or more negative densities are negative! That aint gonna work!')
         return None
     
