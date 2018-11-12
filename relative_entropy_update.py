@@ -6,8 +6,10 @@ from copy import deepcopy
 import re
 
 class RelativeEntropyUpdate:
-    #nothing here yet
+    #set the densities equal and to unity to me modified only if NPT is used
     def __init__(self):
+        self.rho = 1
+        self.rho_tgt = 1
         return None
     
     #load in a function that describes the interaction and current parameters
@@ -56,13 +58,35 @@ class RelativeEntropyUpdate:
         self.gr_tgt = akima.__call__(self.r, nu=0, extrapolate=None)        
         return None
     
+    #reader for the specified density file
+    def GetDensity(self, filename):
+        f = open(filename, 'r')
+        data = f.read()
+        num_re = r'(?:[0-9eE\+\-\.]+)'
+        matches = re.findall(num_re, num_re)
+        f.close()
+        if len(matches) != 1:
+            raise Exception('Something other than exactly ONE density value was found in file "{}"'.format(filename))
+        return float(matches[0])
+    
+    #either load or set the densities depending on the optimization ensemble
+    def LoadDensities(self, filename_current, filename_target):
+        self.rho = self.GetDensity(filename_current)
+        self.rho_tgt = self.GetDensity(filename_target)
+        #issue a warning in case the rho values are not being read in properly
+        if self.rho == 1 or self.rho_tgt == 1:
+            raise Exception('One or more densities are not getting read in or set properly!')
+        elif self.rho < 0.0 or self.rho_tgt < 0.0:
+            raise Exception('One or more negative densities are negative! That aint gonna work!')
+        return None
+    
     #calculate update; wp:If args not provided it uses default vals
-    def CalcUpdate(self, learning_rate=0.01, dim=3):
+    def CalcUpdate(self, ensemble, learning_rate=0.01, dim=3):
         params_val_new = deepcopy(self.params_val)
         for param_name in self.pot.params_state:
             if self.pot.params_state[param_name]['opt']:
                 dur = self.GetDerivative(param_name)
-                update_integral = integrate.trapz(((self.r**(dim - 1))*(self.gr - self.gr_tgt)*dur), x=self.r)
+                update_integral = integrate.trapz(((self.r**(dim - 1))*(self.rho*self.gr - self.rho_tgt*self.gr_tgt)*dur), x=self.r)
                 params_val_new[param_name] = params_val_new[param_name] + learning_rate*update_integral
                 #check to make sure no constraint is violated
                 if 'min' in self.pot.params_state[param_name]:
@@ -73,7 +97,7 @@ class RelativeEntropyUpdate:
         for param_name in params_val_new:
             conv_score['gradient'] = conv_score['gradient'] + ((params_val_new[param_name] - self.params_val[param_name])/learning_rate)**2
         conv_score['gradient'] = conv_score['gradient']**(1.0/2.0)
-        conv_score['rdf_diff'] = integrate.trapz(((self.r**(dim - 1))*(self.gr - self.gr_tgt)**2), x=self.r)
+        conv_score['rdf_diff'] = integrate.trapz(((self.r**(dim - 1))*(self.rho*self.gr - self.rho_tgt*self.gr_tgt)**2), x=self.r)
         return (params_val_new, conv_score)
     
     #calculate update
