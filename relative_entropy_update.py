@@ -63,7 +63,7 @@ class RelativeEntropyUpdate:
         f = open(filename, 'r')
         data = f.read()
         num_re = r'(?:[0-9eE\+\-\.]+)'
-        matches = re.match(num_re, data)
+        matches = re.findall(num_re, data)
         print matches
         f.close()
         if len(matches) != 1:
