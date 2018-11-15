@@ -8,8 +8,8 @@ import re
 class RelativeEntropyUpdate:
     #set the densities equal and to unity to me modified only if NPT is used
     def __init__(self):
-        self.rho = 1
-        self.rho_tgt = 1
+        self.rho = 1.
+        self.rho_tgt = 1.
         return None
     
     #load in a function that describes the interaction and current parameters
@@ -63,7 +63,8 @@ class RelativeEntropyUpdate:
         f = open(filename, 'r')
         data = f.read()
         num_re = r'(?:[0-9eE\+\-\.]+)'
-        matches = re.findall(num_re, num_re)
+        matches = re.match(num_re, data)
+        print matches
         f.close()
         if len(matches) != 1:
             raise Exception('Something other than exactly ONE density value was found in file "{}"'.format(filename))
@@ -79,7 +80,7 @@ class RelativeEntropyUpdate:
         return None
     
     #calculate update; wp:If args not provided it uses default vals
-    def CalcUpdate(self, ensemble, learning_rate=0.01, dim=3):
+    def CalcUpdate(self, learning_rate=0.01, dim=3):
         params_val_new = deepcopy(self.params_val)
         for param_name in self.pot.params_state:
             if self.pot.params_state[param_name]['opt']:
